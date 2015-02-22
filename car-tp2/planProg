@@ -1,0 +1,9 @@
+GET = lister les ressources dans le dossier
+PUT = 
+POST = crééer une nouvelle ressource
+DELETE = supprime le 
+
+
+On va :
+- tester que quand on fait un get on liste bien les ressources présente sur le server
+- tester que quand on fait un PUT
