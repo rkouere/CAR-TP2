@@ -31,28 +31,47 @@ public class PasserelleRest {
         public PasserelleRest() throws IOException {
             ftp.configure(config );
             ftp.connect("127.0.0.1", 4000);
-            System.out.println("[passerelle]: connection to ftp server.");
-            System.out.print("[passerelle]: " + ftp.getReplyString());
-            ftp.login("nico", "password");
-            System.out.print("[passerelle]: " + ftp.getReplyString());
-            reply = ftp.getReplyCode();
+            /* we check the connection is OK */
+            int replyCode = ftp.getReplyCode();
+            if(!FTPReply.isPositiveCompletion(replyCode)) {
+                System.out.println("[passerelle] : Connection failed");
+                return;
+            }
+            else {
+                System.out.println("[passerelle] : Connection success");
+            }
+
+            boolean login = ftp.login("nico", "password");
+            if (!login) {
+                ftp.disconnect();
+                System.out.println("Could not login to the server");
+                return;
+            }
+            else {
+                System.out.print("[passerelle]: " + ftp.getReplyString());
+            }
             /* we set the current directory */
             this.currentDirectory = ftp.printWorkingDirectory();
-            /* if we can't connect to the ftp */
-            if(!FTPReply.isPositiveCompletion(reply)) {
-                ftp.disconnect();
-                System.err.println("FTP server refused connection.");
-                System.exit(1);
-            }
+            System.out.println(this.currentDirectory);
+            
+            // Lists files and directories
+//            FTPFile[] files1 = ftp.listFiles();
+//            System.out.println("files1 " + files1.length);
+// 
+//            // uses simpler methods
+//            String[] files2 = ftp.listNames();
+//            System.out.println("files1 " + files2.length);        
         }
         
 	@GET
 	@Produces("text/html")
-	public String sayHello() throws IOException {
+	public String listFiles() throws IOException {
             String res = new String();
-            FTPFile[] files = ftp.listFiles(this.currentDirectory);
+            FTPFile[] files = ftp.listDirectories();
+            System.out.println(files.length);
             for (FTPFile file : files) {
-                res += file;
+                System.out.println("yoyo" + file.getName());
+                res += file.getName();
             }
             return "[passerelle]: " + res;
 
