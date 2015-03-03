@@ -1,5 +1,9 @@
 package car;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -31,6 +35,9 @@ public class PasserelleRest {
         public PasserelleRest() throws IOException {
             ftp.configure(config );
             ftp.connect("127.0.0.1", 4000);
+            
+            /* we make sure we are in passive mode */
+            ftp.enterLocalPassiveMode();
             /* we check the connection is OK */
             int replyCode = ftp.getReplyCode();
             if(!FTPReply.isPositiveCompletion(replyCode)) {
@@ -60,21 +67,27 @@ public class PasserelleRest {
 	@Produces("text/html")
 	public String listFiles() throws IOException {
             String res = new String();
-            FTPFile[] files = ftp.listDirectories();
+            
+            FTPFile[] files = ftp.listDirectories("/");
+            System.out.println("buffer size " + ftp.getBufferSize());
             System.out.println(files.length);
             for (FTPFile file : files) {
                 System.out.println("yoyo" + file.getName());
                 res += file.getName();
             }
+            
             return "[passerelle]: " + res;
 
 		//return "<h1>Hello World</h1>";
 	}
 
 	 @GET
-	 @Path("/book/{isbn}")
-	 public String getBook( @PathParam("isbn") String isbn ) {
-		 return "Book: "+isbn;		 
+	 @Path("/store")
+	 public String getBook( @PathParam("isbn") String isbn ) throws FileNotFoundException, IOException {
+            File f = new File("/home/rkouere/fac/M1/S2/car/CAR_TP1/Ftp/src/ftpRoot/aaa.txt");
+            BufferedInputStream  fin = new BufferedInputStream(new FileInputStream(f));
+            ftp.storeFile("/home/rkouere/to_delete/aa.txt", fin);
+            return "Book: "+isbn;		 
 	 }
 
 	 @GET
