@@ -54,13 +54,6 @@ public class PasserelleRest {
             this.currentDirectory = ftp.printWorkingDirectory();
             System.out.println(this.currentDirectory);
             
-            // Lists files and directories
-//            FTPFile[] files1 = ftp.listFiles();
-//            System.out.println("files1 " + files1.length);
-// 
-//            // uses simpler methods
-//            String[] files2 = ftp.listNames();
-//            System.out.println("files1 " + files2.length);        
         }
         
 	@GET
