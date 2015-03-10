@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -81,13 +82,13 @@ public class PasserelleRest {
 		//return "<h1>Hello World</h1>";
 	}
 
-	 @GET
-	 @Path("/book/{isbn}")
-	 public String getBook( @PathParam("isbn") String isbn ) throws FileNotFoundException, IOException {
-            File f = new File("/home/rkouere/fac/S2/car/CAR_TP1/Ftp/src/ftpRoot/aaa.txt");
-            BufferedInputStream  fin = new BufferedInputStream(new FileInputStream(f));
-            ftp.storeFile("src/ftpRoot/aa.txt", fin);
-            return "Book: "+isbn;		 
+	 @POST
+	 @Path("/{name}")
+	 public String getBook( @PathParam("name") String name ) throws FileNotFoundException, IOException {
+//            File f = new File("/home/rkouere/fac/S2/car/CAR_TP1/Ftp/src/ftpRoot/aaa.txt");
+//            BufferedInputStream  fin = new BufferedInputStream(new FileInputStream(f));
+//            ftp.storeFile("src/ftpRoot/aa.txt", fin);
+            return "Book: "+name;		 
 	 }
 
 	 @GET
