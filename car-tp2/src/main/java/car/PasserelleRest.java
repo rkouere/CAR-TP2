@@ -17,7 +17,7 @@ import org.apache.commons.net.ftp.FTPReply;
 /**
  * Exemple de ressource REST accessible a l'adresse :
  * 
- * 		http://localhost:8080/rest/api/helloworld
+ * 		http://localhost:8080/rest/api/rest
  * 
  * @author Lionel Seinturier <Lionel.Seinturier@univ-lille1.fr>
  */
@@ -37,7 +37,7 @@ public class PasserelleRest {
             ftp.connect("127.0.0.1", 4000);
             
             /* we make sure we are in passive mode */
-            ftp.enterLocalPassiveMode();
+            //ftp.enterLocalPassiveMode();
             /* we check the connection is OK */
             int replyCode = ftp.getReplyCode();
             if(!FTPReply.isPositiveCompletion(replyCode)) {
@@ -82,11 +82,11 @@ public class PasserelleRest {
 	}
 
 	 @GET
-	 @Path("/store")
+	 @Path("/book/{isbn}")
 	 public String getBook( @PathParam("isbn") String isbn ) throws FileNotFoundException, IOException {
-            File f = new File("/home/rkouere/fac/M1/S2/car/CAR_TP1/Ftp/src/ftpRoot/aaa.txt");
+            File f = new File("/home/rkouere/fac/S2/car/CAR_TP1/Ftp/src/ftpRoot/aaa.txt");
             BufferedInputStream  fin = new BufferedInputStream(new FileInputStream(f));
-            ftp.storeFile("/home/rkouere/to_delete/aa.txt", fin);
+            ftp.storeFile("src/ftpRoot/aa.txt", fin);
             return "Book: "+isbn;		 
 	 }
 
