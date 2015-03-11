@@ -13,6 +13,7 @@ import javax.ws.rs.Produces;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPListParseEngine;
 import org.apache.commons.net.ftp.FTPReply;
 
 /**
@@ -28,13 +29,13 @@ public class PasserelleRest {
         FTPClientConfig config = new FTPClientConfig();
         int reply;
         String currentDirectory = new String();
-        
+        String rootDirectory = new String();
         /**
          * Initialise une connection client avec le ftp.
          * @throws IOException Si la connection avec le serveur n'a pas pu etre faite.
          */
         public PasserelleRest() throws IOException {
-            ftp.configure(config );
+            ftp.configure(config);
             ftp.connect("127.0.0.1", 4000);
             
             /* we make sure we are in passive mode */
@@ -60,27 +61,43 @@ public class PasserelleRest {
             }
             /* we set the current directory */
             this.currentDirectory = ftp.printWorkingDirectory();
-            System.out.println(this.currentDirectory);
+            this.rootDirectory = this.currentDirectory;
+            System.out.println("current directory = " + this.currentDirectory);
             
         }
         
 	@GET
 	@Produces("text/html")
-	public String listFiles() throws IOException {
+	public String listRoot() throws IOException {
             String res = new String();
-            
-            FTPFile[] files = ftp.listDirectories("/");
+            ftp.changeWorkingDirectory(this.rootDirectory);
+
+            FTPFile[] files = ftp.listFiles(this.currentDirectory);
             System.out.println("buffer size " + ftp.getBufferSize());
             System.out.println(files.length);
             for (FTPFile file : files) {
-                System.out.println("yoyo" + file.getName());
-                res += file.getName();
+                System.out.println(file.getName());
+                res += file.getName() + "\r\n";
             }
             
-            return "[passerelle]: " + res;
+            return res;
 
-		//return "<h1>Hello World</h1>";
 	}
+	@GET
+        @Path("/{name}")
+	@Produces("text/html")
+	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
+            String res = new String();
+            ftp.changeWorkingDirectory(this.currentDirectory + "/" + name);
+            FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
+            System.out.println("length = " + files.length);
+            for (FTPFile file : files) {
+                System.out.println(file.getName());
+                res += file.getName() + "\r\n";
+            }
+            
+            return res; 
+	 }
 
 	 @POST
 	 @Path("/{name}")
