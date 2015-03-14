@@ -28,15 +28,20 @@ public class PasserelleRest {
         FTPClient ftp = new FTPClient();
         FTPClientConfig config = new FTPClientConfig();
         int reply;
-        String currentDirectory = new String();
-        String rootDirectory = new String();
+        String currentDirectory = null;
+        String rootDirectory = null;
+        String urlRoot = "http://localhost:8080/rest/api/rest";
         /**
          * Initialise une connection client avec le ftp.
          * @throws IOException Si la connection avec le serveur n'a pas pu etre faite.
          */
         public PasserelleRest() throws IOException {
+            this.currentDirectory = new String();
+            this.rootDirectory = new String();
+            
             ftp.configure(config);
             ftp.connect("127.0.0.1", 4000);
+
             
             /* we make sure we are in passive mode */
             //ftp.enterLocalPassiveMode();
@@ -66,6 +71,11 @@ public class PasserelleRest {
             
         }
         
+        /**
+         * Gère l'affichage des éléments présent dans le dossier racine
+         * @return la liste des fichiers/dossiers présent ainsi que leur url
+         * @throws IOException 
+         */
 	@GET
 	@Produces("text/html")
 	public String listRoot() throws IOException {
@@ -76,24 +86,28 @@ public class PasserelleRest {
             System.out.println("buffer size " + ftp.getBufferSize());
             System.out.println(files.length);
             for (FTPFile file : files) {
-                System.out.println(file.getName());
-                res += file.getName() + "\r\n";
+                res += "<a href=\"" + this.urlRoot + file.getName() +"\">" + file.getName() + "</a><br />";
             }
             
             return res;
-
 	}
+        /**
+         * Gère l'affichage des éléments présent dans tous les autres dossiers
+         * @param name le chemin de la ressource
+         * @return la liste des fichiers/dossiers présent ainsi que leur url
+         * @throws FileNotFoundException
+         * @throws IOException 
+         */
 	@GET
-        @Path("/{name}")
+        @Path("/{name: .*}")
 	@Produces("text/html")
 	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             String res = new String();
+            System.out.println(name);
             ftp.changeWorkingDirectory(this.currentDirectory + "/" + name);
             FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
-            System.out.println("length = " + files.length);
             for (FTPFile file : files) {
-                System.out.println(file.getName());
-                res += file.getName() + "\r\n";
+                res += "<a href=\"" + this.urlRoot + "/" + name + "/" + file.getName() +"\">" + file.getName() + "</a><br />";
             }
             
             return res; 
