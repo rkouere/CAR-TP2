@@ -116,9 +116,15 @@ public class PasserelleRest {
             /* on recupere le conetnu du dossier */
             FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
             /* on liste tout ce qu'il y a dans le dossier */
+            if(this.isRoot != true) {
+                String url = urlRootCurrent + name;
+                int lastIndex = url.lastIndexOf("/");
+                res += "<a href=\"" + url.substring(0, lastIndex) +"\">..</a><br />";
+            }
             for (FTPFile file : files) {
-                if(file.getName().equals(".."))
-                    res += "<a href=\"" + urlRootCurrent + name + "/" + file.getName() +"\">" + file.getName() + "</a><br />";
+                if(!file.getName().equals("."))
+                    if(!file.getName().equals(".."))
+                        res += "<a href=\"" + urlRootCurrent + name + "/" + file.getName() +"\">" + file.getName() + "</a><br />";
             }
             
             return res; 
