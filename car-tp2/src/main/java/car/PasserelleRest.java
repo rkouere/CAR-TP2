@@ -1,10 +1,12 @@
 package car;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -36,6 +38,7 @@ public class PasserelleRest {
         Boolean isRoot = null;
         String urlRoot = "http://localhost:8080/rest/api/rest";
         ServerSocket connData = null;
+        Socket socketData = null;
         /**
          * Initialise une connection client avec le ftp.
          * @throws IOException Si la connection avec le serveur n'a pas pu etre faite.
@@ -73,27 +76,21 @@ public class PasserelleRest {
             System.out.println("current directory = " + this.currentDirectory);
             
         }
-        
- 	@GET
+	@GET
         @Path("{name: .*\\..+}")
 	@Produces("application/octet-stream")
-    	public Response downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
+    	public String downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             String tmp = this.currentDirectory + "/" + name;
+            String[] nameOfFile = name.split("\\/");
+            BufferedInputStream inputStream = null;
+            BufferedOutputStream outputStream = null;
+            InputStream in = null;
+            in = ftp.retrieveFileStream(this.currentDirectory + "/" + name);
             int indexOf = tmp.lastIndexOf("/");
-            System.out.println(tmp);
-            System.out.println(indexOf);
-            System.out.println(tmp.substring(0, indexOf));
-            ftp.changeWorkingDirectory(tmp.substring(0, indexOf));
-            //if(!this.connData.isClosed())
-                this.connData = new ServerSocket(12002);
-            ftp.port(InetAddress.getLocalHost(), 12002);
-            Socket socket = connData.accept();
-
-            ftp.retr(name);
-//            Response resp = Response.ok(socket.getInputStream()).build();
-//            socket.close();
-            return Response.ok(socket.getInputStream()).build();
+            System.out.println("");
+            return "OK";
         }   
+
         /**
          * Gère l'affichage des éléments présent dans tous les autres dossiers
          * @param name le chemin de la ressource
