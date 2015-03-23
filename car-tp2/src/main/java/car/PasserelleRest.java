@@ -19,6 +19,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
@@ -42,7 +43,7 @@ public class PasserelleRest {
         int reply;
         String currentDirectory = null;
         Boolean isRoot = null;
-        String urlRoot = "http://localhost:8080/rest/api/rest";
+        String urlRoot = "http://localhost:8080/rest/api/rest/list/";
         ServerSocket connData = null;
         Socket socketData = null;
         /**
@@ -110,32 +111,7 @@ public class PasserelleRest {
            serv.close();
         return resp;
         }   
-//	@GET
-//        @Path("{name: .*\\..+}")
-//	@Produces("application/octet-stream")
-//    	public Boolean downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
-//            String tmp = this.currentDirectory + "/" + name;
-//            String[] nameOfFile = name.split("\\/");
-//            InputStream inputStream = null;
-//            File downloadFile2 = new File(nameOfFile[nameOfFile.length - 1]);
-//            OutputStream outputStream2 = new BufferedOutputStream(new FileOutputStream(downloadFile2));
-//            inputStream = ftp.retrieveFileStream(nameOfFile[nameOfFile.length -1]);
-//            byte[] bytesArray = new byte[4096];
-//            int bytesRead = -1;
-//            while ((bytesRead = inputStream.read(bytesArray)) != -1) {
-//                outputStream2.write(bytesArray, 0, bytesRead);
-//            }
-// 
-//            boolean success = ftp.completePendingCommand();
-//            if (success) {
-//                System.out.println("File #2 has been downloaded successfully.");
-//            }
-//            outputStream2.close();
-//            inputStream.close();
-//            if(ftp.getReplyCode() != 150)
-//                return false;
-//            return true;
-//        }   
+
 
         /**
          * Gère l'affichage des éléments présent dans tous les autres dossiers
@@ -173,7 +149,7 @@ public class PasserelleRest {
                 
                 /* on gere l'upload des fichiers */
                 res += "<form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
-                "  Username: <input type='file' name='file'><br>\n" +
+                "  <input type='file' name='file'><br> nom de la destination : <input type='text' name='name'/>\n" +
                 "  <input type='submit' value='Submit'>\n" +
                 "</form> ";
                 
@@ -196,35 +172,32 @@ public class PasserelleRest {
 
          // PUT pour uploader le fichier
          
-         /**
-          * Pour creer un dosseir
-          * @param name
-          * @return
-          * @throws FileNotFoundException
-          * @throws IOException 
-          */
-	@POST
-        @Path("/upload")
-	@Produces("text/html")
-	@Consumes("multipart/form-data")
-	public String importFile( @Multipart("file") Attachment attr ) throws IOException {
-//            /* contenu du fichier */
-		String content = (String) attr.getDataHandler().getContent();
-		String res = new String();
-//                
-		File file = new File(attr.getDataHandler().getName());
-		FileOutputStream fos = new FileOutputStream(file);
-		fos.write(content.getBytes());
-		fos.close();
-                System.out.println(attr.getDataHandler().getName());
-                System.out.println(content);
-//		//this.ftp.storeFile(file);
-//		
-//		res += "<h1>Fichier uploadé</h1>";
-//		//String link = linker.generateLink(client.pwd());
-//		//generator.redirection(link,1000);
-		return "ok";
+        /**
+         * 
+         * @param fichier Le stream a envoyer sur le serveur
+         * @param name Le nom de fichier a utiliser sur le serveur
+         * @return Un message indiquant à l'utilisateur si le fichier a bien été téléversé sur le ftp.
+         * @throws IOException 
+         */
+        @POST
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	//@Produces("text/html")
+	@Path("/upload")
+	public String up( @Multipart("file") InputStream fichier,
+					  @Multipart("name") String name) throws IOException {
+                String back = "<input action='action' type='button' value='Back' onclick='history.go(-1);' />";
+		this.ftp.storeFile(name, fichier); 
+		fichier.close();
+                int reply = this.ftp.getReplyCode();
+                if(reply == 450)
+                    back += "<h1>Erreur 450</h1><pUn fichier avec ce nom existe déjà.</p>";
+		//this.ftp.stor(file);
+                else
+                    back += "<h1>Le fichier " + name + " a bien été téléversé sur le serveur</h1>";
+		return back;
 	}
+
+
 
 	 @GET
 	 @Path("{var: .*}/stuff")
