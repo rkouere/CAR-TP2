@@ -5,13 +5,17 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -21,6 +25,8 @@ import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPListParseEngine;
 import org.apache.commons.net.ftp.FTPReply;
+import org.apache.cxf.jaxrs.ext.multipart.Attachment;
+import org.apache.cxf.jaxrs.ext.multipart.Multipart;
 
 /**
  * Exemple de ressource REST accessible a l'adresse :
@@ -50,7 +56,7 @@ public class PasserelleRest {
             ftp.connect("127.0.0.1", 4000);
 
             
-            /* we make sure we are in passive mode */
+            /* we make sure we are inputStream passive mode */
             //ftp.enterLocalPassiveMode();
             /* we check the connection is OK */
             int replyCode = ftp.getReplyCode();
@@ -76,20 +82,60 @@ public class PasserelleRest {
             System.out.println("current directory = " + this.currentDirectory);
             
         }
-	@GET
-        @Path("{name: .*\\..+}")
+        
+        /**
+         * Permet de télécharger un fichier à partir du ftp sur le client
+         * @param une URL qui finit en *.*
+         * @return true si le fichier existe false si il n'existe as
+         * @throws FileNotFoundException
+         * @throws IOException 
+         */
+        @GET
+        @Path("list/{name: .*\\..+}")
 	@Produces("application/octet-stream")
-    	public String downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
+    	public Response downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
+           ServerSocket serv = new ServerSocket(60000);
+           ftp.port(InetAddress.getLocalHost(), 60000);
             String tmp = this.currentDirectory + "/" + name;
             String[] nameOfFile = name.split("\\/");
-            BufferedInputStream inputStream = null;
-            BufferedOutputStream outputStream = null;
-            InputStream in = null;
-            in = ftp.retrieveFileStream(this.currentDirectory + "/" + name);
-            int indexOf = tmp.lastIndexOf("/");
-            System.out.println("");
-            return "OK";
+           Socket socket = serv.accept();
+           
+           int reply = ftp.retr(nameOfFile[nameOfFile.length - 1]);
+            System.out.println(reply);
+           if(reply != 150) {
+               serv.close();
+               return Response.ok("ca merde").build();
+           }
+           Response resp = Response.ok(socket.getInputStream()).build();
+           serv.close();
+        return resp;
         }   
+//	@GET
+//        @Path("{name: .*\\..+}")
+//	@Produces("application/octet-stream")
+//    	public Boolean downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
+//            String tmp = this.currentDirectory + "/" + name;
+//            String[] nameOfFile = name.split("\\/");
+//            InputStream inputStream = null;
+//            File downloadFile2 = new File(nameOfFile[nameOfFile.length - 1]);
+//            OutputStream outputStream2 = new BufferedOutputStream(new FileOutputStream(downloadFile2));
+//            inputStream = ftp.retrieveFileStream(nameOfFile[nameOfFile.length -1]);
+//            byte[] bytesArray = new byte[4096];
+//            int bytesRead = -1;
+//            while ((bytesRead = inputStream.read(bytesArray)) != -1) {
+//                outputStream2.write(bytesArray, 0, bytesRead);
+//            }
+// 
+//            boolean success = ftp.completePendingCommand();
+//            if (success) {
+//                System.out.println("File #2 has been downloaded successfully.");
+//            }
+//            outputStream2.close();
+//            inputStream.close();
+//            if(ftp.getReplyCode() != 150)
+//                return false;
+//            return true;
+//        }   
 
         /**
          * Gère l'affichage des éléments présent dans tous les autres dossiers
@@ -99,7 +145,7 @@ public class PasserelleRest {
          * @throws IOException 
          */
 	@GET
-        @Path("{name: [^\\.]*}")
+        @Path("list/{name: [^\\.]*}")
 	@Produces("text/html")
 	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             String res = new String();
@@ -124,6 +170,13 @@ public class PasserelleRest {
                 ftp.changeWorkingDirectory(this.currentDirectory + "/" + name);
                 /* on recupere le conetnu du dossier */
                 FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
+                
+                /* on gere l'upload des fichiers */
+                res += "<form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
+                "  Username: <input type='file' name='file'><br>\n" +
+                "  <input type='submit' value='Submit'>\n" +
+                "</form> ";
+                
                 /* on gere la navigation vers le dossier parent */
                 if(this.isRoot != true) {
                     String url = urlRootCurrent + name;
@@ -150,14 +203,28 @@ public class PasserelleRest {
           * @throws FileNotFoundException
           * @throws IOException 
           */
-	 @POST
-	 @Path("/{name}")
-	 public String getBook( @PathParam("name") String name ) throws FileNotFoundException, IOException {
-//            File f = new File("/home/rkouere/fac/S2/car/CAR_TP1/Ftp/src/ftpRoot/aaa.txt");
-//            BufferedInputStream  fin = new BufferedInputStream(new FileInputStream(f));
-//            ftp.storeFile("src/ftpRoot/aa.txt", fin);
-            return "Book: "+name;		 
-	 }
+	@POST
+        @Path("/upload")
+	@Produces("text/html")
+	@Consumes("multipart/form-data")
+	public String importFile( @Multipart("file") Attachment attr ) throws IOException {
+//            /* contenu du fichier */
+		String content = (String) attr.getDataHandler().getContent();
+		String res = new String();
+//                
+		File file = new File(attr.getDataHandler().getName());
+		FileOutputStream fos = new FileOutputStream(file);
+		fos.write(content.getBytes());
+		fos.close();
+                System.out.println(attr.getDataHandler().getName());
+                System.out.println(content);
+//		//this.ftp.storeFile(file);
+//		
+//		res += "<h1>Fichier uploadé</h1>";
+//		//String link = linker.generateLink(client.pwd());
+//		//generator.redirection(link,1000);
+		return "ok";
+	}
 
 	 @GET
 	 @Path("{var: .*}/stuff")
