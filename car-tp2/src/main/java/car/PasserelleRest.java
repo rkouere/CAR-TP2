@@ -46,6 +46,9 @@ public class PasserelleRest {
         String urlRoot = "http://localhost:8080/rest/api/rest/list/";
         ServerSocket connData = null;
         Socket socketData = null;
+        
+        /* the text present in the form used to delete / upload files */
+        String form = new String();
         /**
          * Initialise une connection client avec le ftp.
          * @throws IOException Si la connection avec le serveur n'a pas pu etre faite.
@@ -55,7 +58,13 @@ public class PasserelleRest {
             
             ftp.configure(config);
             ftp.connect("127.0.0.1", 4000);
-
+            this.form = "<form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
+                "<input type='file' name='file'><br> nom de la destination : <input type='text' name='name' /><br />\n" +
+                "<input type='submit' value='Téléverse'>\n" +
+                "</form> " + 
+                "<form method='POST' action='http://localhost:8080/rest/api/rest/delete'><input type='text' name='name' />" + 
+                "<input type='submit' value='Delete'></form>";
+                    
             
             /* we make sure we are inputStream passive mode */
             //ftp.enterLocalPassiveMode();
@@ -95,21 +104,21 @@ public class PasserelleRest {
         @Path("list/{name: .*\\..+}")
 	@Produces("application/octet-stream")
     	public Response downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
-           ServerSocket serv = new ServerSocket(60000);
-           ftp.port(InetAddress.getLocalHost(), 60000);
+            ServerSocket serv = new ServerSocket(60000);
+            ftp.port(InetAddress.getLocalHost(), 60000);
             String tmp = this.currentDirectory + "/" + name;
             String[] nameOfFile = name.split("\\/");
-           Socket socket = serv.accept();
-           
-           int reply = ftp.retr(nameOfFile[nameOfFile.length - 1]);
+            Socket socket = serv.accept();
+
+            int reply = ftp.retr(nameOfFile[nameOfFile.length - 1]);
             System.out.println(reply);
-           if(reply != 150) {
-               serv.close();
-               return Response.ok("ca merde").build();
-           }
-           Response resp = Response.ok(socket.getInputStream()).build();
-           serv.close();
-        return resp;
+            if(reply != 150) {
+                serv.close();
+                return Response.ok("ca merde").build();
+            }
+            Response resp = Response.ok(socket.getInputStream()).build();
+            serv.close();
+         return resp;
         }   
 
 
@@ -127,7 +136,7 @@ public class PasserelleRest {
             String res = new String();
             String urlRootCurrent = this.urlRoot;
             String[] tmp = name.split("\\/");
-            
+            System.out.println(name);
             if(tmp[tmp.length-1].contains(".")) {
                 System.out.println(tmp[tmp.length-1]);
             }
@@ -135,6 +144,7 @@ public class PasserelleRest {
             else {
                 /* on verifie si nous somme à la racine de l'url. Si c'est le cas, on gere le nom du dossier root un peut differement */
                 if(name.equals("")) {
+                    System.out.println("We are root");
                     this.isRoot = true;
                 }
                 else {
@@ -147,13 +157,10 @@ public class PasserelleRest {
                 /* on recupere le conetnu du dossier */
                 FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
                 
-                /* on gere l'upload des fichiers */
-                res += "<form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
-                "  <input type='file' name='file'><br> nom de la destination : <input type='text' name='name'/>\n" +
-                "  <input type='submit' value='Submit'>\n" +
-                "</form> ";
+                /* on rajoute le formulaire necessaire au down/upload */
+                res += this.form;
                 
-                /* on gere la navigation vers le dossier parent */
+                /* on gere la navigation vers le dossier parent (seulement si nous ne sommes pas dans le dossier root) */
                 if(this.isRoot != true) {
                     String url = urlRootCurrent + name;
                     int lastIndex = url.lastIndexOf("/");
@@ -164,7 +171,7 @@ public class PasserelleRest {
                 for (FTPFile file : files) {
                     if(!file.getName().equals("."))
                         if(!file.getName().equals(".."))
-                            res += "<a href=\"" + urlRootCurrent + name + "/" + file.getName() +"\">" + file.getName() + "</a><br />";
+                            res += "<a href=\"" + urlRootCurrent + name + ((this.isRoot == false) ? "/" : "") + file.getName() +"\">" + file.getName() + "</a> <br />";                                   
                 }
                 }
             return res; 
@@ -173,7 +180,7 @@ public class PasserelleRest {
          // PUT pour uploader le fichier
          
         /**
-         * 
+         * Téléverse le fichier du client sur le ftp
          * @param fichier Le stream a envoyer sur le serveur
          * @param name Le nom de fichier a utiliser sur le serveur
          * @return Un message indiquant à l'utilisateur si le fichier a bien été téléversé sur le ftp.
@@ -183,9 +190,9 @@ public class PasserelleRest {
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	//@Produces("text/html")
 	@Path("/upload")
-	public String up( @Multipart("file") InputStream fichier,
-					  @Multipart("name") String name) throws IOException {
+	public String upload( @Multipart("file") InputStream fichier, @Multipart("name") String name) throws IOException {
                 String back = "<input action='action' type='button' value='Back' onclick='history.go(-1);' />";
+                System.out.println(name);
 		this.ftp.storeFile(name, fichier); 
 		fichier.close();
                 int reply = this.ftp.getReplyCode();
@@ -197,6 +204,24 @@ public class PasserelleRest {
 		return back;
 	}
 
+        @POST
+	@Produces("text/html")
+	@Path("/delete")
+	public String delete(@Multipart("name") String name) throws IOException {
+                String back = "<input action='action' type='button' value='Back' onclick='history.go(-1);' />";
+                String[] fileName = name.split("=");
+                name = fileName[1].substring(0, fileName[1].length()-1);
+                System.out.println(name);
+		this.ftp.deleteFile(name); 
+                int reply = this.ftp.getReplyCode();
+                System.out.println(reply);
+                if(reply == 250)
+                    back += "<h1>Le fichier " + name + " a bien été supprimé du serveur</h1>";
+		//this.ftp.stor(file);
+                else
+                    back += "<h1>Erreur " + reply + "</h1><p>Le fichier n'a pas pu etre effece.</p>";
+		return back;
+	}
 
 
 	 @GET
