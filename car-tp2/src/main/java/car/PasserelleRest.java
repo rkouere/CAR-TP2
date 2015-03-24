@@ -1,21 +1,14 @@
 package car;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -25,17 +18,15 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPListParseEngine;
 import org.apache.commons.net.ftp.FTPReply;
-import org.apache.cxf.jaxrs.ext.multipart.Attachment;
 import org.apache.cxf.jaxrs.ext.multipart.Multipart;
 
 /**
- * Exemple de ressource REST accessible a l'adresse :
+ * Implémentation de la plateforme REST
  * 
- * 		http://localhost:8080/rest/api/rest
+ * 		http://localhost:8080/rest/api/rest/list/
  * 
- * @author Lionel Seinturier <Lionel.Seinturier@univ-lille1.fr>
+ * @author Nicolas Echallier -  <Lionel.Seinturier@univ-lille1.fr>
  */
 @Path("/rest")
 public class PasserelleRest {
@@ -58,7 +49,7 @@ public class PasserelleRest {
             this.currentDirectory = new String();
             this.form = "<div><h1 style='font-size:1.2em; font-family: sans'>Téléverser un fichier</h1><form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
                 "Choisir le fichier<input type='file' name='file'><br> nom de la destination : <input type='text' name='name' /><br />\n" +
-                "<input type='submit' value='Téléverse'>\n" +
+                "<input type='submit' value='Téléverser'>\n" +
                 "</form> </div>" + 
                 "<div><h1 style='font-size:1.2em; font-family: sans'>Supprimer un fichier</h1><form method='POST' action='http://localhost:8080/rest/api/rest/delete'><input type='text' name='name' />" + 
                 "<input type='submit' value='Delete'></form></div>";
@@ -113,7 +104,6 @@ public class PasserelleRest {
             Socket socket = serv.accept();
 
             int reply = ftp.retr(nameOfFile[nameOfFile.length - 1]);
-            System.out.println(reply);
             if(reply == 550) {
                 serv.close();
                 return Response.status(NOT_FOUND).entity("uploadFile is called, Uploaded file name : ").build();
@@ -125,7 +115,7 @@ public class PasserelleRest {
 
 
         /**
-         * Gère l'affichage des éléments présent dans tous les autres dossiers
+         * Gère l'affichage des éléments présent dans tous les dossiers
          * @param name le chemin de la ressource
          * @return la liste des fichiers/dossiers présent ainsi que leur url
          * @throws FileNotFoundException
@@ -135,11 +125,9 @@ public class PasserelleRest {
         @Path("list/{name: [^\\.]*}")
 	@Produces("text/html; charset=UTF-8")
 	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
-            String res = new String();
-            
+            String res = new String();        
            /* on recuper le nom de l'url que nous allon sutiliser piur naviguer dans les dossiers du ftp */
             String[] tmp = name.split("\\/");
-            System.out.println(name);
             if(tmp[tmp.length-1].contains(".")) {
                 System.out.println(tmp[tmp.length-1]);
             }
@@ -159,21 +147,15 @@ public class PasserelleRest {
                 this.ftp.changeWorkingDirectory(this.currentDirectory + "/" + name);
                 /* si le dossier n'existe pas */
                 if(ftp.getReplyCode() == 521)
-                    return "<b>URL inconnu</b>";
+                    return "<div><b>URL inconnu</b></div><div><a href='" + this.urlRoot + "'>Retourner à la page d'acceuil</a></div>";
                 /* on recupere le conetnu du dossier */
                 FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
                 
                 /* on rajoute le formulaire necessaire au down/upload */
                 res += this.form;
                 
-                /* on gere la navigation vers le dossier parent (seulement si nous ne sommes pas dans le dossier root) */
-                if(this.isRoot != true) {
-                    String url = this.urlRoot + name;
-                    int lastIndex = url.lastIndexOf("/");
-                    res += "<a href=\"" + url.substring(0, lastIndex) +"/\">..</a><br />";
-                }
+ 
                 /* on liste tout ce qu'il y a dans le dossier */
-
                 for (FTPFile file : files) {
                     if(!file.getName().equals("."))
                         if(!file.getName().equals(".."))
@@ -194,10 +176,11 @@ public class PasserelleRest {
          */
         @POST
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
-	//@Produces("text/html")
+	@Produces("text/html; charset=UTF-8")
 	@Path("/upload")
 	public String upload( @Multipart("file") InputStream fichier, @Multipart("name") String name) throws IOException {
-                String back = "<input action='action' type='button' value='Back' onclick='history.go(-1);' />";
+                String back = "<p style='color:red'>Attention, ce boutton ne recharge pas la page, vous ne verrez donc le fichier que lorsque vous l'aurez rechargée.</p>"+
+                "<input action='action' type='button' value='Back' onclick='history.go(-1);' />";
                 System.out.println(name);
 		this.ftp.storeFile(name, fichier); 
 		fichier.close();
@@ -211,12 +194,17 @@ public class PasserelleRest {
 	}
 
         @POST
-	@Produces("text/html")
+	@Produces("text/html; charset=UTF-8")
 	@Path("/delete")
 	public String delete(@Multipart("name") String name) throws IOException {
-                String back = "<input action='action' type='button' value='Back' onclick='history.go(-1);' />";
+                String back = "<p style='color:red'>Attention, ce boutton ne recharge pas la page, vous ne verrez donc le fichier que lorsque vous l'aurez rechargée.</p><input action='action' type='button' value='Back' onclick='history.go(-1);' />";
                 String[] fileName = name.split("=");
-                name = fileName[1].substring(0, fileName[1].length()-1);
+                System.out.println(name);
+                /* on verifie que le nom n'a pas un espace (fini par un +)*/
+                if(fileName[1].endsWith("+"))
+                    name = fileName[1].substring(0, fileName[1].length()-1);
+                else
+                    name = fileName[1];
                 System.out.println(name);
 		this.ftp.deleteFile(name); 
                 int reply = this.ftp.getReplyCode();

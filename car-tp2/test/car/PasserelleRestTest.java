@@ -173,51 +173,6 @@ public class PasserelleRestTest {
     }
 
 
-    /**
-     * Test of upload method, of class PasserelleRest.
-     */
-    @Test
-    public void testUpload() throws Exception {
-        URL obj = new URL("http://localhost:8080/rest/api/rest/list/greterssfet.lkjsh");
-        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-
-        // make sure it is a get
-        con.setRequestMethod("POST");
-        conn.setRequestProperty("name", "Basic dGVzdDphc2Rm");
-        //add request header
-        con.setRequestProperty("User-Agent", USER_AGENT);
-        assertTrue(con.getResponseCode() == 404);
-        con.disconnect();
-    }
-//
-//    /**
-//     * Test of delete method, of class PasserelleRest.
-//     */
-//    @Test
-//    public void testDelete() throws Exception {
-//        System.out.println("delete");
-//        String name = "";
-//        PasserelleRest instance = new PasserelleRest();
-//        String expResult = "";
-//        String result = instance.delete(name);
-//        assertEquals(expResult, result);
-//        // TODO review the generated test code and remove the default call to fail.
-//        fail("The test case is a prototype.");
-//    }
-//
-//    /**
-//     * Test of getStuff method, of class PasserelleRest.
-//     */
-//    @Test
-//    public void testGetStuff() {
-//        System.out.println("getStuff");
-//        String stuff = "";
-//        PasserelleRest instance = new PasserelleRest();
-//        String expResult = "";
-//        String result = instance.getStuff(stuff);
-//        assertEquals(expResult, result);
-//        // TODO review the generated test code and remove the default call to fail.
-//        fail("The test case is a prototype.");
-//    }
+ 
     
 }
