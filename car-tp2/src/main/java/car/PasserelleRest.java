@@ -97,13 +97,14 @@ public class PasserelleRest {
         /**
          * Permet de télécharger un fichier à partir du ftp sur le client
          * @param une URL qui finit en *.*
-         * @return true si le fichier existe false si il n'existe as
+         * @return Le fichier si il existe ou une erreur 404 si il n'existe pas.
          * @throws FileNotFoundException
          * @throws IOException 
          */
         @GET
         @Path("list/{name: .*\\..+}")
 	@Produces("application/octet-stream")
+        
     	public Response downloadFile( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             ServerSocket serv = new ServerSocket(60000);
             ftp.port(InetAddress.getLocalHost(), 60000);
@@ -115,9 +116,9 @@ public class PasserelleRest {
             System.out.println(reply);
             if(reply == 550) {
                 serv.close();
-                return Response.status(NOT_FOUND).build();
+                return Response.status(NOT_FOUND).entity("uploadFile is called, Uploaded file name : ").build();
             }
-            Response resp = Response.ok(socket.getInputStream()).entity("uploadFile is called, Uploaded file name : ").build();
+            Response resp = Response.ok(socket.getInputStream()).build();
             serv.close();
          return resp;
         }   
@@ -132,7 +133,7 @@ public class PasserelleRest {
          */
 	@GET
         @Path("list/{name: [^\\.]*}")
-	@Produces("text/html")
+	@Produces("text/html; charset=UTF-8")
 	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             String res = new String();
             String urlRootCurrent = this.urlRoot;
