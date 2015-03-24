@@ -56,12 +56,12 @@ public class PasserelleRest {
          */
         public PasserelleRest() throws IOException {
             this.currentDirectory = new String();
-            this.form = "<form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
-                "<input type='file' name='file'><br> nom de la destination : <input type='text' name='name' /><br />\n" +
+            this.form = "<div><h1 style='font-size:1.2em; font-family: sans'>Téléverser un fichier</h1><form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
+                "Choisir le fichier<input type='file' name='file'><br> nom de la destination : <input type='text' name='name' /><br />\n" +
                 "<input type='submit' value='Téléverse'>\n" +
-                "</form> " + 
-                "<form method='POST' action='http://localhost:8080/rest/api/rest/delete'><input type='text' name='name' />" + 
-                "<input type='submit' value='Delete'></form>";
+                "</form> </div>" + 
+                "<div><h1 style='font-size:1.2em; font-family: sans'>Supprimer un fichier</h1><form method='POST' action='http://localhost:8080/rest/api/rest/delete'><input type='text' name='name' />" + 
+                "<input type='submit' value='Delete'></form></div>";
                     
             ftp.configure(config);
             ftp.connect("127.0.0.1", 4000);
@@ -136,9 +136,8 @@ public class PasserelleRest {
 	@Produces("text/html; charset=UTF-8")
 	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             String res = new String();
-            String urlRootCurrent = this.urlRoot;
             
-            /* on recuper le nom de l'url que nous allon sutiliser piur naviguer dans les dossiers du ftp */
+           /* on recuper le nom de l'url que nous allon sutiliser piur naviguer dans les dossiers du ftp */
             String[] tmp = name.split("\\/");
             System.out.println(name);
             if(tmp[tmp.length-1].contains(".")) {
@@ -152,11 +151,15 @@ public class PasserelleRest {
                 }
                 else {
                     this.isRoot = false;
-                    urlRootCurrent += "/"; 
+                    //urlRootCurrent += "/"; 
                 }
 
                 /* a chaque connection, on doit aller dans le dossier correspondant pour pouvoir lister le contenu du dossier */
-                ftp.changeWorkingDirectory(this.currentDirectory + "/" + name);
+                /* nous sommes obligé de faire cela car sinon nous pouvons avoir des problèmes a la permiere connection*/
+                this.ftp.changeWorkingDirectory(this.currentDirectory + "/" + name);
+                /* si le dossier n'existe pas */
+                if(ftp.getReplyCode() == 521)
+                    return "<b>URL inconnu</b>";
                 /* on recupere le conetnu du dossier */
                 FTPFile[] files = ftp.listFiles(this.currentDirectory + "/" + name);
                 
@@ -165,18 +168,18 @@ public class PasserelleRest {
                 
                 /* on gere la navigation vers le dossier parent (seulement si nous ne sommes pas dans le dossier root) */
                 if(this.isRoot != true) {
-                    String url = urlRootCurrent + name;
+                    String url = this.urlRoot + name;
                     int lastIndex = url.lastIndexOf("/");
-                    res += "<a href=\"" + url.substring(0, lastIndex) +"\">..</a><br />";
+                    res += "<a href=\"" + url.substring(0, lastIndex) +"/\">..</a><br />";
                 }
                 /* on liste tout ce qu'il y a dans le dossier */
 
                 for (FTPFile file : files) {
                     if(!file.getName().equals("."))
                         if(!file.getName().equals(".."))
-                            res += "<a href=\"" + urlRootCurrent + name + ((this.isRoot == false) ? "/" : "") + file.getName() +"\">" + file.getName() + "</a> <br />";                                   
+                            res += "<a href=\"" + this.urlRoot + name + ((this.isRoot == false) ? "/" : "") + file.getName() +"\">" + file.getName() + "</a> <br />";                                   
                 }
-                }
+            }
             return res; 
 	 }
 
