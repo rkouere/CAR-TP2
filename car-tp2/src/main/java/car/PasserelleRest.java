@@ -21,6 +21,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
@@ -55,9 +56,6 @@ public class PasserelleRest {
          */
         public PasserelleRest() throws IOException {
             this.currentDirectory = new String();
-            
-            ftp.configure(config);
-            ftp.connect("127.0.0.1", 4000);
             this.form = "<form method='POST' action='http://localhost:8080/rest/api/rest/upload' enctype='multipart/form-data'>\n" +
                 "<input type='file' name='file'><br> nom de la destination : <input type='text' name='name' /><br />\n" +
                 "<input type='submit' value='Téléverse'>\n" +
@@ -65,6 +63,9 @@ public class PasserelleRest {
                 "<form method='POST' action='http://localhost:8080/rest/api/rest/delete'><input type='text' name='name' />" + 
                 "<input type='submit' value='Delete'></form>";
                     
+            ftp.configure(config);
+            ftp.connect("127.0.0.1", 4000);
+
             
             /* we make sure we are inputStream passive mode */
             //ftp.enterLocalPassiveMode();
@@ -112,11 +113,11 @@ public class PasserelleRest {
 
             int reply = ftp.retr(nameOfFile[nameOfFile.length - 1]);
             System.out.println(reply);
-            if(reply != 150) {
+            if(reply == 550) {
                 serv.close();
-                return Response.ok("ca merde").build();
+                return Response.status(NOT_FOUND).build();
             }
-            Response resp = Response.ok(socket.getInputStream()).build();
+            Response resp = Response.ok(socket.getInputStream()).entity("uploadFile is called, Uploaded file name : ").build();
             serv.close();
          return resp;
         }   
@@ -135,6 +136,8 @@ public class PasserelleRest {
 	 public String listDirectory( @PathParam("name") String name ) throws FileNotFoundException, IOException {
             String res = new String();
             String urlRootCurrent = this.urlRoot;
+            
+            /* on recuper le nom de l'url que nous allon sutiliser piur naviguer dans les dossiers du ftp */
             String[] tmp = name.split("\\/");
             System.out.println(name);
             if(tmp[tmp.length-1].contains(".")) {
@@ -144,7 +147,6 @@ public class PasserelleRest {
             else {
                 /* on verifie si nous somme à la racine de l'url. Si c'est le cas, on gere le nom du dossier root un peut differement */
                 if(name.equals("")) {
-                    System.out.println("We are root");
                     this.isRoot = true;
                 }
                 else {
@@ -219,7 +221,7 @@ public class PasserelleRest {
                     back += "<h1>Le fichier " + name + " a bien été supprimé du serveur</h1>";
 		//this.ftp.stor(file);
                 else
-                    back += "<h1>Erreur " + reply + "</h1><p>Le fichier n'a pas pu etre effece.</p>";
+                    back += "<h1>Erreur " + reply + "</h1><p>Le fichier n'a pas pu etre effece</p>";
 		return back;
 	}
 
